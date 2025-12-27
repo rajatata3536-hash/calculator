@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AI Chat</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body{
+  margin:0;
+  background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+  font-family:Arial;
+  color:white;
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+}
+
+header{
+  padding:15px;
+  text-align:center;
+  font-size:22px;
+  background:rgba(0,0,0,0.3);
+}
+
+#chat{
+  flex:1;
+  padding:15px;
+  overflow-y:auto;
+}
+
+.msg{
+  padding:12px;
+  margin:10px 0;
+  border-radius:15px;
+  max-width:85%;
+  font-size:15px;
+}
+
+.user{
+  background:#4CAF50;
+  margin-left:auto;
+}
+
+.bot{
+  background:#37474F;
+}
+
+.time{
+  font-size:11px;
+  opacity:0.7;
+  margin-top:4px;
+}
+
+.bar{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:10px;
+  background:rgba(0,0,0,0.35);
+}
+
+input[type=text]{
+  flex:1;
+  padding:12px;
+  border-radius:25px;
+  border:none;
+  outline:none;
+}
+
+button{
+  width:45px;
+  height:45px;
+  border-radius:50%;
+  border:none;
+  font-size:18px;
+}
+
+#mic{background:#FFC107;}
+#camera{background:#2196F3;}
+#send{background:#4CAF50;color:white;}
+
+img{
+  max-width:100%;
+  border-radius:12px;
+  margin-top:6px;
+}
+</style>
+</head>
+
+<body>
+
+<header>🤖 AI Chat</header>
+
+<div id="chat">
+  <div class="msg bot">
+    👋 Ask anything or say "generate image of..."
+    <div class="time"></div>
+  </div>
+</div>
+
+<div class="bar">
+  <button id="mic">🎤</button>
+  <button id="camera">📷</button>
+  <input id="input" type="text" placeholder="Ask something..." />
+  <button id="send">➤</button>
+</div>
+
+<!-- Camera only -->
+<input type="file" id="cameraInput" accept="image/*" capture style="display:none">
+
+<script>
+const API_KEY = "";
+
+const chat = document.getElementById("chat");
+const input = document.getElementById("input");
+
+function getTime(){
+  const d=new Date();
+  return d.toLocaleDateString()+" "+d.toLocaleTimeString([],{
+    hour:"2-digit",minute:"2-digit"
+  });
+}
+
+function addMsg(text,type="bot"){
+  const box=document.createElement("div");
+  box.className="msg "+type;
+  box.innerHTML=text + `<div class="time">${getTime()}</div>`;
+  chat.appendChild(box);
+  chat.scrollTop=chat.scrollHeight;
+  return box;
+}
+
+/* Voice */
+document.getElementById("mic").onclick=()=>{
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){alert("Voice needs Chrome HTTPS");return;}
+  const r=new SR();
+  r.lang="en-IN";
+  r.start();
+  r.onresult=e=>input.value=e.results[0][0].transcript;
+};
+
+/* Camera only */
+document.getElementById("camera").onclick=()=>{
+  cameraInput.value="";
+  cameraInput.click();
+};
+
+cameraInput.onchange=e=>{
+  if(!e.target.files[0])return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    addMsg(`<img src="${reader.result}">`,"user");
+  };
+  reader.readAsDataURL(e.target.files[0]);
+};
+
+/* Send */
+document.getElementById("send").onclick=handle;
+input.addEventListener("keypress",e=>{if(e.key==="Enter")handle();});
+
+function handle(){
+  const text=input.value.trim();
+  if(!text)return;
+  addMsg(text,"user");
+  input.value="";
+
+  const t=text.toLowerCase();
+  if(t.includes("image")||t.includes("draw")||t.includes("picture")){
+    generateImage(text);
+  }else{
+    chatAnswer(text);
+  }
+}
+
+/* Chat */
+async function chatAnswer(text){
+  const hold=addMsg("🤔 Thinking...");
+  const res=await fetch("https://api.openai.com/v1/chat/completions",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization":"Bearer "+API_KEY
+    },
+    body:JSON.stringify({
+      model:"gpt-4.1-mini",
+      messages:[{role:"user",content:text}]
+    })
+  });
+  const data=await res.json();
+  hold.innerHTML=data.choices[0].message.content+
+    `<div class="time">${getTime()}</div>`;
+}
+
+/* Image generation */
+async function generateImage(prompt){
+  const hold=addMsg("🖼️ Generating image...");
+  const res=await fetch("https://api.openai.com/v1/images/generations",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization":"Bearer "+API_KEY
+    },
+    body:JSON.stringify({
+      model:"gpt-image-1",
+      prompt:prompt,
+      size:"1024x1024"
+    })
+  });
+  const data=await res.json();
+  hold.innerHTML=`<img src="${data.data[0].url}">
+  <div class="time">${getTime()}</div>`;
+}
+</script>
+
+</body>
+</html>
