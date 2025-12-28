@@ -1,163 +1,76 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>AI Chat</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-*{box-sizing:border-box;font-family:Arial}
-body{
-  margin:0;height:100vh;display:flex;flex-direction:column;
-  background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
-  color:#fff
-}
-header{
-  padding:14px;text-align:center;
-  font-size:20px;font-weight:bold;background:#000
-}
-#chat{
-  flex:1;padding:12px;overflow-y:auto
-}
-.msg{
-  max-width:85%;padding:10px 14px;
-  border-radius:14px;margin-bottom:10px
-}
-.user{background:#4CAF50;margin-left:auto}
-.bot{background:#37474F}
-
-.bar{
-  display:flex;align-items:center;
-  gap:8px;padding:8px;background:#00000080
-}
-input{
-  flex:1;padding:10px 14px;
-  border-radius:22px;border:none;font-size:15px
-}
-button{border:none;cursor:pointer}
-
-.icon{
-  width:42px;height:42px;border-radius:50%;
-  font-size:18px;color:#fff;
-  display:flex;align-items:center;justify-content:center
-}
-.plus{background:#444}
-.mic{background:#FFC107;color:#000}
-.send{background:#4CAF50}
-
-#menu{
-  position:absolute;bottom:70px;left:10px;
-  background:#1c313a;border-radius:12px;
-  display:none;padding:6px
-}
-#menu button{
-  display:flex;align-items:center;gap:8px;
-  width:140px;padding:10px;
-  background:none;color:#fff;font-size:15px
-}
-#menu button:hover{background:#263238}
-
-input[type=file]{display:none}
-</style>
-</head>
-
-<body>
-
-<header>AI Chat</header>
-
-<div id="chat">
-  <div class="msg bot">👋 Hello! Ask anything.</div>
-</div>
-
-<div id="menu">
-  <button onclick="openCamera()">📷 Camera</button>
-  <button onclick="openGallery()">🖼️ Gallery</button>
-</div>
-
-<div class="bar">
-  <button class="icon plus" onclick="toggleMenu()">＋</button>
-  <input id="input" placeholder="Type or speak..." oninput="toggleSend()">
-  <button id="micBtn" class="icon mic" onclick="voice()">🎤</button>
-  <button id="sendBtn" class="icon send" onclick="send()" style="display:none">➤</button>
-</div>
-
-<input type="file" id="cameraInput" accept="image/*" capture="environment">
-<input type="file" id="galleryInput" accept="image/*">
-
 <script>
-const input=document.getElementById("input");
-const chat=document.getElementById("chat");
-const menu=document.getElementById("menu");
-const micBtn=document.getElementById("micBtn");
-const sendBtn=document.getElementById("sendBtn");
+let lastTime = 0;
 
-function add(content,type){
-  const d=document.createElement("div");
-  d.className="msg "+type;
-  if(typeof content==="string"){
-    d.innerHTML=content;
-  }else{
-    d.appendChild(content);
-  }
-  chat.appendChild(d);
-  chat.scrollTop=chat.scrollHeight;
+function now(){
+  return new Date().toLocaleTimeString();
 }
 
-function toggleSend(){
-  if(input.value.trim()){
-    micBtn.style.display="none";
-    sendBtn.style.display="flex";
-  }else{
-    micBtn.style.display="flex";
-    sendBtn.style.display="none";
-  }
-}
-
-function toggleMenu(){
-  menu.style.display = menu.style.display==="block"?"none":"block";
-}
-
-function openCamera(){
-  menu.style.display="none";
-  document.getElementById("cameraInput").click();
-}
-function openGallery(){
-  menu.style.display="none";
-  document.getElementById("galleryInput").click();
-}
-
-["cameraInput","galleryInput"].forEach(id=>{
-  document.getElementById(id).onchange=e=>{
-    const file=e.target.files[0];
-    if(!file)return;
-    const img=document.createElement("img");
-    img.src=URL.createObjectURL(file);
-    img.style.maxWidth="100%";
-    img.style.borderRadius="12px";
-    add(img,"user");
-  };
-});
-
-function voice(){
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){alert("Voice not supported");return;}
-  const r=new SR();
-  r.lang="en-IN";
-  r.start();
-  r.onresult=e=>{
-    input.value=e.results[0][0].transcript;
-    toggleSend();
-  };
+function addMsg(text, cls){
+  const div = document.createElement("div");
+  div.className = "msg " + cls;
+  div.innerHTML = text + `<div class="time">${now()}</div>`;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
 }
 
 function send(){
-  const text=input.value.trim();
-  if(!text)return;
-  add(text,"user");
-  input.value="";
-  toggleSend();
-  add("⚠️ Real AI reply needs backend","bot");
-}
-</script>
+  const v = input.value.trim();
+  if(!v) return;
 
-</body>
-</html>
+  const t = Date.now();
+  if(t - lastTime < 1000){
+    addMsg("⚠️ Slow down…","bot");
+    return;
+  }
+  lastTime = t;
+
+  addMsg(v,"user");
+  input.value = "";
+  toggleSend();
+
+  setTimeout(()=>{
+    addMsg("🤖 Demo AI reply: " + v,"bot");
+  },600);
+}
+
+function toggleSend(){
+  sendBtn.style.display = input.value ? "flex" : "none";
+}
+
+function voice(){
+  if(!('webkitSpeechRecognition' in window)){
+    alert("Voice not supported");
+    return;
+  }
+  const r = new webkitSpeechRecognition();
+  r.lang = "en-IN";
+  r.onresult = e => {
+    input.value = e.results[0][0].transcript;
+    toggleSend();
+  };
+  r.start();
+}
+
+function toggleMenu(){
+  menu.style.display = (menu.style.display === "block") ? "none" : "block";
+}
+
+function openCamera(){
+  cam.click();
+  menu.style.display = "none";
+}
+
+function openGallery(){
+  gal.click();
+  menu.style.display = "none";
+}
+
+function showImage(inp){
+  const f = inp.files[0];
+  if(!f) return;
+  const img = URL.createObjectURL(f);
+  addMsg(`<img src="${img}" style="max-width:100%;border-radius:12px">`,"user");
+}
+
+document.querySelectorAll(".time").forEach(t => t.innerText = now());
+</script>
