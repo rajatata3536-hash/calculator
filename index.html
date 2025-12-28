@@ -3,205 +3,520 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Raja AI Chat</title>
-
+  <title>Raja AI Chat — Voice + Image + Upload</title>
   <style>
-    body{
-      margin:0;
-      font-family:Arial,Helvetica,sans-serif;
-      background:#f4f6fb;
+    :root{
+      --bg:#f6f7fb; --card:#ffffff; --accent:#6b46ff; --bubble-user:#e8f7ff;
+      --bubble-bot:#eef7ff; --text:#111827; --muted:#6b7280;
+      --plus-size:56px;
     }
-    header{
-      background:#6b46ff;
-      color:#fff;
-      padding:15px;
-      text-align:center;
-    }
-    #chat{
-      padding:15px;
-      height:70vh;
-      overflow:auto;
-    }
-    .bubble{
-      padding:10px 14px;
-      border-radius:12px;
-      margin:8px 0;
-      max-width:80%;
-    }
-    .user{
-      background:#dff1ff;
-      margin-left:auto;
-      text-align:right;
-    }
-    .bot{
-      background:#eef7ff;
-      margin-right:auto;
-    }
-    .controls{
-      display:flex;
-      gap:8px;
-      padding:10px;
-      border-top:1px solid #ddd;
-      background:#fff;
-    }
-    input{
-      flex:1;
-      padding:10px;
-      border-radius:20px;
-      border:1px solid #ccc;
-    }
-    button{
-      padding:10px 14px;
-      border:none;
-      border-radius:50%;
-      cursor:pointer;
-      font-size:18px;
-    }
-    .send{background:#6b46ff;color:#fff;}
-    .mic{background:#06b6d4;color:#fff;}
-    .speak{background:#10b981;color:#fff;}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
+    .app{max-width:820px;margin:0 auto;height:100vh;display:flex;flex-direction:column}
+    header{padding:14px 16px;background:linear-gradient(180deg,var(--accent),#7b64ff);color:white}
+    header h1{margin:0;font-size:20px;text-align:center}
+    header p{margin:6px 0 0;font-size:12px;text-align:center;opacity:0.95}
 
-    .fab{
-      position:fixed;
-      right:20px;
-      bottom:90px;
-      width:56px;
-      height:56px;
-      border-radius:50%;
-      background:#6b46ff;
-      color:#fff;
-      font-size:30px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      cursor:pointer;
+    main#chat{flex:1;overflow:auto;padding:16px;background:transparent}
+    .bubble{max-width:86%;padding:12px;border-radius:12px;margin:10px 0;line-height:1.4;box-shadow:0 1px 0 rgba(0,0,0,0.03)}
+    .bubble.user{margin-left:auto;background:var(--bubble-user);text-align:right}
+    .bubble.bot{margin-right:auto;background:var(--bubble-bot);text-align:left}
+    .meta{font-size:12px;color:var(--muted);margin-bottom:6px}
+
+    .controls{padding:12px;border-top:1px solid rgba(0,0,0,0.05);background:var(--card);display:flex;gap:8px;align-items:center}
+    .input{flex:1;padding:12px;border-radius:999px;border:1px solid #e6edf3;background:#fff;min-height:44px}
+    .btn{padding:10px 14px;border-radius:10px;border:none;font-weight:600;cursor:pointer}
+    .btn-send{background:var(--accent);color:white;min-width:68px;border-radius:10px;display:none}
+    .btn-mic{background:#06b6d4;color:white;width:48px;height:48px;border-radius:999px;display:flex;align-items:center;justify-content:center}
+    .btn-speak{background:#10b981;color:white;width:48px;height:48px;border-radius:999px;display:flex;align-items:center;justify-content:center}
+    .status{font-size:13px;color:var(--muted);margin-left:8px}
+
+    /* Floating plus */
+    .fab { position: fixed; right: 18px; bottom: 90px; z-index: 2000; width: var(--plus-size); height: var(--plus-size);
+      background: var(--accent); border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow: 0 6px 18px rgba(107,70,255,0.25);
+      color:white; font-size:30px; cursor:pointer; border:6px solid rgba(255,255,255,0.6);
     }
-    .fab-menu{
-      position:fixed;
-      right:20px;
-      bottom:150px;
-      display:none;
-      flex-direction:column;
-      gap:10px;
-    }
-    .fab-item{
-      width:48px;
-      height:48px;
-      border-radius:50%;
-      background:#6b46ff;
-      color:#fff;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      cursor:pointer;
-      font-size:20px;
-    }
-    img{
-      max-width:220px;
-      border-radius:8px;
-      margin-top:6px;
+    /* small menu items (vertical) */
+    .fab-menu { position: fixed; right: 18px; bottom: calc(90px + var(--plus-size) + 8px); z-index: 1999; display:none; flex-direction:column; gap:10px; align-items:center; }
+    .fab-item { width:48px;height:48px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:white;box-shadow:0 6px 14px rgba(0,0,0,0.12);cursor:pointer; }
+    .fab-label { font-size:12px;color:#111;margin-top:6px;background:white;padding:6px 8px;border-radius:8px;box-shadow:0 4px 8px rgba(0,0,0,0.08);display:none }
+
+    /* chat image preview */
+    .chat-image{max-width:240px;border-radius:8px;display:block;margin-top:8px}
+
+    /* small responsive */
+    @media(max-width:520px){
+      header h1{font-size:18px}
+      .fab{ right:12px; bottom:78px; width:52px; height:52px }
     }
   </style>
 </head>
 <body>
+  <div class="app" role="application" aria-label="Raja AI Chat">
+    <header>
+      <h1>Raja AI Chat</h1>
+      <p>Voice + Chat + Image/Video Generate • Google-style voice</p>
+    </header>
 
-<header>
-  <h2>Raja AI Chat</h2>
-  <p>Voice • Camera • Gallery • Files</p>
-</header>
+    <main id="chat" aria-live="polite"></main>
 
-<div id="chat"></div>
+    <!-- Controls -->
+    <div class="controls" role="region" aria-label="controls">
+      <input id="inputText" class="input" placeholder="Type or speak..." aria-label="Message input" />
+      <button id="sendBtn" class="btn btn-send" title="Send">Send</button>
+      <button id="micBtn" class="btn-mic" title="Start voice">🎤</button>
+      <button id="speakBtn" class="btn-speak" title="Speak last reply">🔊</button>
+      <div id="status" class="status">Ready</div>
+    </div>
+  </div>
 
-<div class="controls">
-  <input id="text" placeholder="Type or speak..." />
-  <button class="send" id="send">➤</button>
-  <button class="mic" id="mic">🎤</button>
-  <button class="speak" id="speak">🔊</button>
-</div>
+  <!-- Floating + and small menu with Camera / Photos / Files -->
+  <div class="fab" id="fab" title="Add">+</div>
+  <div class="fab-menu" id="fabMenu" aria-hidden="true">
+    <div style="display:flex;flex-direction:column;align-items:center;">
+      <div class="fab-item" id="fileBtn" title="Files">📄</div>
+      <div class="fab-item" id="photosBtn" title="Photos">🖼️</div>
+      <div class="fab-item" id="cameraBtn" title="Camera">📷</div>
+    </div>
+  </div>
 
-<div class="fab" id="fab">+</div>
-<div class="fab-menu" id="menu">
-  <div class="fab-item" id="camera">📷</div>
-  <div class="fab-item" id="gallery">🖼️</div>
-  <div class="fab-item" id="file">📄</div>
-</div>
-
-<input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
-<input type="file" id="galleryInput" accept="image/*" multiple hidden>
-<input type="file" id="fileInput" hidden>
+  <!-- Hidden file inputs -->
+  <input id="cameraInput" accept="image/*" capture="environment" type="file" style="display:none" />
+  <input id="photosInput" accept="image/*" type="file" multiple style="display:none" />
+  <input id="filesInput" type="file" style="display:none" />
 
 <script>
-/* =====================
-   API CONFIG (EMPTY)
-   ===================== */
-const API_KEY = ""; // abhi blank rehne de
-const AI_URL = ""; // baad me lagana
+/* ============================
+   CONFIGURE API KEYS + URLs
+   ============================
+   Replace the placeholders below with your keys / endpoints.
+*/
+const API_KEY = ""; // <<<--- PASTE your Google AI Studio API KEY (or other provider) HERE
+const AI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + API_KEY; // text chat
+const IMAGE_API_URL = "https://generativelanguage.googleapis.com/v1/images:generate?key=" + API_KEY; // image generation endpoint (configure if different)
+const VIDEO_API_URL = "https://your-video-api.example.com/generate"; // configure video API endpoint if available
 
-const chat = document.getElementById("chat");
-const text = document.getElementById("text");
+/* ============================
+   UI References
+   ============================ */
+const chat = document.getElementById('chat');
+const input = document.getElementById('inputText');
+const sendBtn = document.getElementById('sendBtn');
+const micBtn = document.getElementById('micBtn');
+const speakBtn = document.getElementById('speakBtn');
+const status = document.getElementById('status');
 
-function bubble(role,msg,img){
-  const d=document.createElement("div");
-  d.className="bubble "+role;
-  d.innerText=msg;
-  if(img){
-    const i=document.createElement("img");
-    i.src=img;
-    d.appendChild(i);
+const fab = document.getElementById('fab');
+const fabMenu = document.getElementById('fabMenu');
+const cameraInput = document.getElementById('cameraInput');
+const photosInput = document.getElementById('photosInput');
+const filesInput = document.getElementById('filesInput');
+const cameraBtn = document.getElementById('cameraBtn');
+const photosBtn = document.getElementById('photosBtn');
+const fileBtn = document.getElementById('fileBtn');
+
+let lastReply = "";
+let recognition = null;
+let listening = false;
+
+/* --------------------
+   Chat bubble helper
+   -------------------- */
+function addBubble(role, text, opt = {}) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'bubble ' + (role === 'user' ? 'user' : 'bot');
+
+  const meta = document.createElement('div');
+  meta.className = 'meta';
+  meta.textContent = role === 'user' ? 'You' : 'Assistant';
+  wrapper.appendChild(meta);
+
+  const body = document.createElement('div');
+  body.innerText = text;
+  wrapper.appendChild(body);
+
+  // optional image
+  if (opt.imageUrl) {
+    const img = document.createElement('img');
+    img.src = opt.imageUrl;
+    img.className = 'chat-image';
+    wrapper.appendChild(img);
   }
-  chat.appendChild(d);
-  chat.scrollTop=chat.scrollHeight;
+  // optional file link
+  if (opt.fileLink) {
+    const a = document.createElement('a');
+    a.href = opt.fileLink;
+    a.target = '_blank';
+    a.textContent = opt.fileName || 'Open file';
+    wrapper.appendChild(a);
+  }
+  chat.appendChild(wrapper);
+  chat.scrollTop = chat.scrollHeight;
 }
 
-bubble("bot","Hello Raja 👋 Main ready hoon.");
+/* --------------------
+   Voice: Google Assistant style
+   -------------------- */
+function getPreferredVoice() {
+  const synth = window.speechSynthesis;
+  const voices = synth.getVoices();
+  if (!voices || voices.length === 0) return null;
 
-document.getElementById("send").onclick=()=>{
-  if(!text.value.trim())return;
-  bubble("user",text.value);
-  bubble("bot","API key nahi lagi hai, par UI bilkul sahi chal rahi hai 🙂");
-  text.value="";
-};
+  const preferred = voices.find(v => /Google/.test(v.name) && /en-?in/i.test(v.lang));
+  if (preferred) return preferred;
 
-const SpeechRec=window.SpeechRecognition||window.webkitSpeechRecognition;
-if(SpeechRec){
-  const r=new SpeechRec();
-  r.lang="en-IN";
-  r.onresult=e=>{
-    text.value=e.results[0][0].transcript;
-    document.getElementById("send").click();
+  let v = voices.find(v => /en-?in/i.test(v.lang));
+  if (v) return v;
+  v = voices.find(v => /en-?gb/i.test(v.lang));
+  if (v) return v;
+  v = voices.find(v => /en-?us/i.test(v.lang));
+  if (v) return v;
+  return voices[0];
+}
+
+function speakText(text) {
+  if (!text) return;
+  try {
+    if ('speechSynthesis' in window) {
+      const utter = new SpeechSynthesisUtterance(text);
+      const v = getPreferredVoice();
+      if (v) utter.voice = v;
+      utter.lang = v?.lang || 'en-IN';
+      utter.rate = 1.0;
+      utter.pitch = 1.0;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utter);
+      return;
+    }
+  } catch(e) {
+    console.warn('speech error', e);
+  }
+  const audio = new Audio("https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q=" + encodeURIComponent(text) + "&tl=en");
+  audio.play().catch(()=>console.warn('fallback tts failed'));
+}
+
+/* --------------------
+   Auto toggle mic/send depending on input
+   -------------------- */
+function refreshInputState() {
+  if (input.value.trim() === "") {
+    sendBtn.style.display = 'none';
+    micBtn.style.display = 'inline-flex';
+  } else {
+    sendBtn.style.display = 'inline-block';
+    micBtn.style.display = 'none';
+  }
+}
+input.addEventListener('input', refreshInputState);
+refreshInputState();
+
+/* --------------------
+   AI Chat call (text -> response)
+   -------------------- */
+async function callAI(prompt) {
+  if (!API_KEY || API_KEY.trim() === "") {
+    throw new Error("Set API_KEY variable in the HTML file first.");
+  }
+  const body = {
+    contents: [{ parts: [{ text: prompt }] }]
   };
-  document.getElementById("mic").onclick=()=>r.start();
+
+  const resp = await fetch(AI_API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  if (!resp.ok) {
+    const txt = await resp.text();
+    throw new Error("AI API error: " + resp.status + " " + txt);
+  }
+  const data = await resp.json();
+  const txt = data?.candidates?.[0]?.content?.parts?.[0]?.text || data?.output?.[0]?.content?.text || data?.text || "";
+  return txt;
 }
 
-document.getElementById("speak").onclick=()=>{
-  const u=new SpeechSynthesisUtterance("Hello Raja, main bol raha hoon");
-  speechSynthesis.speak(u);
-};
+/* --------------------
+   Send a message (normal)
+   -------------------- */
+async function sendMessage(text) {
+  if (!text) return;
+  addBubble('user', text);
+  input.value = '';
+  refreshInputState();
+  status.textContent = "Thinking...";
+  try {
+    const reply = await callAI(text);
+    addBubble('bot', reply);
+    lastReply = reply;
+    speakText(reply); // speak automatically (Google-style)
+    status.textContent = "Ready";
+  } catch (e) {
+    addBubble('bot', "Error: " + (e.message || e));
+    status.textContent = "Error";
+    console.error(e);
+  }
+}
 
-const fab=document.getElementById("fab");
-const menu=document.getElementById("menu");
-fab.onclick=()=>menu.style.display=menu.style.display==="flex"?"none":"flex";
+/* Send button */
+sendBtn.addEventListener('click', () => {
+  const txt = input.value.trim();
+  if (txt) sendMessageWithSpecial(txt);
+});
+input.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && input.value.trim()) sendBtn.click();
+});
 
-document.getElementById("camera").onclick=()=>cameraInput.click();
-document.getElementById("gallery").onclick=()=>galleryInput.click();
-document.getElementById("file").onclick=()=>fileInput.click();
+/* --------------------
+   Speech recognition (mic)
+   -------------------- */
+function setupRecognition() {
+  const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!Rec) { micBtn.disabled = true; micBtn.title = "Speech not supported"; return; }
+  recognition = new Rec();
+  recognition.lang = 'en-IN';
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+  recognition.continuous = false;
 
-cameraInput.onchange=e=>{
-  const f=e.target.files[0];
-  if(f) bubble("bot","Camera photo",{});
-};
+  recognition.onstart = () => { listening = true; status.textContent = "Listening..."; micBtn.textContent = '⏺'; };
+  recognition.onend = () => { listening = false; status.textContent = "Ready"; micBtn.textContent = '🎤'; };
+  recognition.onerror = (ev) => { console.error('rec error', ev); status.textContent = "Mic error"; listening=false; micBtn.textContent='🎤'; };
+  recognition.onresult = (ev) => {
+    const txt = ev.results[0][0].transcript;
+    input.value = txt;
+    refreshInputState();
+    if (txt.trim()) {
+      sendMessageWithSpecial(txt.trim());
+    }
+  };
+}
+setupRecognition();
+micBtn.addEventListener('click', () => {
+  if (!recognition) setupRecognition();
+  try {
+    recognition.start();
+  } catch(e) { console.warn('rec start error', e); }
+});
 
-galleryInput.onchange=e=>{
-  [...e.target.files].forEach(f=>{
-    bubble("bot","Gallery photo",URL.createObjectURL(f));
+/* Speak button */
+speakBtn.addEventListener('click', () => {
+  if (!lastReply) { status.textContent = "No reply to speak"; return; }
+  speakText(lastReply);
+});
+
+/* --------------------
+   Floating plus menu behavior
+   -------------------- */
+fab.addEventListener('click', () => {
+  if (fabMenu.style.display === 'flex') {
+    fabMenu.style.display = 'none';
+    fab.setAttribute('aria-expanded', 'false');
+  } else {
+    fabMenu.style.display = 'flex';
+    fab.setAttribute('aria-expanded', 'true');
+  }
+});
+
+/* Close menu if clicked outside */
+document.addEventListener('click', (e) => {
+  if (!fab.contains(e.target) && !fabMenu.contains(e.target)) {
+    fabMenu.style.display = 'none';
+  }
+});
+
+/* Camera / Photos / Files actions (use hidden file inputs) */
+cameraBtn.addEventListener('click', () => cameraInput.click());
+photosBtn.addEventListener('click', () => photosInput.click());
+fileBtn.addEventListener('click', () => filesInput.click());
+
+cameraInput.addEventListener('change', (ev) => {
+  const f = ev.target.files[0];
+  if (!f) return;
+  const url = URL.createObjectURL(f);
+  addBubble('user', "Sent a camera photo");
+  addBubble('bot', "Preview:", { imageUrl: url });
+});
+
+photosInput.addEventListener('change', (ev) => {
+  const files = Array.from(ev.target.files || []);
+  files.forEach(f => {
+    const url = URL.createObjectURL(f);
+    addBubble('user', "Sent a photo");
+    addBubble('bot', "Preview:", { imageUrl: url });
   });
-};
+});
 
-fileInput.onchange=e=>{
-  const f=e.target.files[0];
-  if(f) bubble("bot","File received: "+f.name);
-};
+filesInput.addEventListener('change', (ev) => {
+  const f = ev.target.files[0];
+  if (!f) return;
+  addBubble('user', "Sent a file: " + f.name);
+  addBubble('bot', "Received file: " + f.name);
+});
+
+/* --------------------
+   Image generation function (connect to provider)
+   -------------------- */
+async function generateImageFromPrompt(promptText) {
+  if (!API_KEY || API_KEY.trim() === "") {
+    throw new Error("Set API_KEY variable at top of file.");
+  }
+  const body = {
+    prompt: promptText,
+  };
+
+  const res = await fetch(IMAGE_API_URL, {
+    method: 'POST',
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error("Image API error: " + res.status + " " + t);
+  }
+  const data = await res.json();
+  let imageUrl = data.url || data.imageUrl || null;
+  if (!imageUrl) {
+    const b64 = data.b64_json || (data.data && data.data[0] && data.data[0].b64_json);
+    if (b64) {
+      imageUrl = "data:image/png;base64," + b64;
+    } else if (data.output && data.output[0] && data.output[0].imageUrl) {
+      imageUrl = data.output[0].imageUrl;
+    }
+  }
+  if (!imageUrl) throw new Error("No image URL in response; check your IMAGE_API_URL and response shape.");
+  return imageUrl;
+}
+
+/* --------------------
+   Video generation function (placeholder)
+   -------------------- */
+async function generateVideoFromPrompt(promptText) {
+  if (!VIDEO_API_URL || VIDEO_API_URL.includes('example.com')) {
+    throw new Error("Video generation endpoint not configured. Set VIDEO_API_URL to a real endpoint.");
+  }
+  const body = { prompt: promptText };
+  const resp = await fetch(VIDEO_API_URL, {
+    method: 'POST',
+    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + API_KEY },
+    body: JSON.stringify(body)
+  });
+  if (!resp.ok) {
+    const t = await resp.text();
+    throw new Error("Video API error: " + resp.status + " " + t);
+  }
+  const data = await resp.json();
+  return data.videoUrl || data.url || null;
+}
+
+/* --------------------
+   NEW: Date / Day / Time handler (local, instant)
+   -------------------- */
+function handleDateDayTime(text) {
+  const t = text.toLowerCase();
+
+  const now = new Date();
+  const days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  const day = days[now.getDay()];
+  const date = now.toLocaleDateString("en-IN");
+  const time = now.toLocaleTimeString("en-IN");
+
+  // Hindi/Urdu keywords common checks
+  if (t.includes("aaj ka din") || t.includes("aaj kaun sa din") || t.includes("aaj din") || t.includes("din")) {
+    return "Today is " + day + ".";
+  }
+  if (t.includes("aaj ki date") || t.includes("aaj ki tareekh") || t.includes("tarikh") || t.includes("date")) {
+    return "Today's date is " + date + ".";
+  }
+  if (t.includes("time") || t.includes("samay") || t.includes("kitne baje") || t.includes("abhi")) {
+    return "Current time is " + time + ".";
+  }
+  return null;
+}
+
+/* --------------------
+   Quick UI actions: special prompts (image/video generate)
+   -------------------- */
+async function handleSpecialPrompts(text) {
+  const t = text.toLowerCase();
+  if (t.includes("generate") && (t.includes("photo") || t.includes("image") || t.includes("picture") || t.includes("photo bana") || t.includes("image bana"))) {
+    status.textContent = "Generating image...";
+    try {
+      const promptForImage = text.replace(/generate|photo|image|picture/ig, '').trim() || "A clean professional portrait";
+      const imageUrl = await generateImageFromPrompt(promptForImage);
+      addBubble('bot', "Here is the generated image:", { imageUrl });
+      status.textContent = "Ready";
+      speakText("Image generated. See chat.");
+    } catch (e) {
+      addBubble('bot', "Image generation error: " + (e.message || e));
+      status.textContent = "Ready";
+    }
+    return true;
+  }
+  if (t.includes("generate") && t.includes("video")) {
+    status.textContent = "Generating video...";
+    try {
+      const promptForVideo = text.replace(/generate|video/ig, '').trim() || "A short animated clip of sunrise";
+      const videoUrl = await generateVideoFromPrompt(promptForVideo);
+      if (!videoUrl) throw new Error("No video url returned.");
+      addBubble('bot', "Video ready: " + videoUrl, { fileLink: videoUrl, fileName: "video.mp4" });
+      status.textContent = "Ready";
+      speakText("Video generated. Check chat.");
+    } catch (e) {
+      addBubble('bot', "Video generation error: " + (e.message || e));
+      status.textContent = "Ready";
+    }
+    return true;
+  }
+  return false;
+}
+
+/* --------------------
+   MASTER: sendMessageWithSpecial
+   - 1) Check Date/Day/Time locally (instant)
+   - 2) Check image/video special prompts
+   - 3) Normal AI chat
+   -------------------- */
+async function sendMessageWithSpecial(text) {
+
+  // 1) Check Date / Day / Time
+  const quick = handleDateDayTime(text);
+  if (quick) {
+    addBubble('user', text);
+    addBubble('bot', quick);
+    speakText(quick);
+    return;
+  }
+
+  // 2) Check image/video generate
+  try {
+    const handled = await handleSpecialPrompts(text);
+    if (handled) return;
+  } catch (e) {
+    console.warn("special prompt error", e);
+  }
+
+  // 3) Normal chat
+  await sendMessage(text);
+}
+
+/* --------------------
+   Example shortcut and init
+   -------------------- */
+function initExampleShortcuts() {
+  cameraBtn.addEventListener('dblclick', () => {
+    const prompt = "A friendly smiling shopkeeper portrait, high resolution";
+    sendMessageWithSpecial("generate photo " + prompt);
+  });
+}
+initExampleShortcuts();
+
+addBubble('bot', "Hello Raja! I am your AI chat. How can I help you today?");
+status.textContent = "Ready";
+
+/* Expose some helpers to console for debugging */
+window._send = (s) => sendMessageWithSpecial(s);
+window._speak = (t) => speakText(t);
+window._generateImage = (p) => generateImageFromPrompt(p);
 </script>
-
 </body>
 </html>
