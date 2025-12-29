@@ -1,117 +1,66 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
 <title>Raja AI Chat</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-body{
-  margin:0;
-  font-family:Arial,Helvetica,sans-serif;
-  background:#f4f6fb;
-}
-header{
-  background:#6c4cff;
-  color:#fff;
-  padding:14px;
-  display:flex;
-  align-items:center;
-}
-header span{
-  font-size:22px;
-  cursor:pointer;
-  margin-right:12px;
-}
-#menu{
-  position:fixed;
-  top:0;
-  left:-260px;
-  width:240px;
-  height:100%;
-  background:#fff;
-  box-shadow:2px 0 10px rgba(0,0,0,.2);
-  transition:.3s;
-  z-index:10;
-}
-#menu h3{padding:15px;margin:0}
-#menu div{
-  padding:14px;
-  cursor:pointer;
-}
-#menu div:hover{background:#eee}
+body{margin:0;font-family:Arial;background:#f4f6fb}
+header{background:#6c4cff;color:#fff;padding:14px;display:flex;align-items:center}
+header span{font-size:22px;cursor:pointer;margin-right:10px}
 
-#overlay{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.4);
-  display:none;
-  z-index:9;
+#layout{display:flex;height:100vh}
+#sidebar{
+  width:260px;background:#fff;border-right:1px solid #ddd;
+  position:fixed;left:-260px;top:0;height:100%;
+  transition:.3s;z-index:2
 }
+#sidebar h3{padding:15px;margin:0}
+#sidebar button{
+  width:90%;margin:10px;padding:10px;border:none;
+  background:#6c4cff;color:#fff;border-radius:6px
+}
+.chatItem{padding:12px;border-bottom:1px solid #eee;cursor:pointer}
+.chatItem:hover{background:#f1f1f1}
 
-#chat{
-  padding:15px;
-  padding-bottom:90px;
-}
-.bubble{
-  background:#e6f0ff;
-  padding:10px 14px;
-  border-radius:12px;
-  margin-bottom:10px;
-  max-width:80%;
-}
+#overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;z-index:1}
+
+#chat{flex:1;padding:15px;padding-bottom:120px}
+.msg{background:#e6f0ff;padding:10px;border-radius:12px;margin-bottom:10px;max-width:80%}
 .user{background:#d9fdd3;margin-left:auto}
 
+/* INPUT BAR */
 #inputBar{
-  position:fixed;
-  bottom:0;
-  left:0;
-  right:0;
-  background:#fff;
-  display:flex;
-  align-items:center;
-  padding:10px;
-  gap:8px;
+ position:fixed;bottom:0;left:0;right:0;
+ background:#fff;padding:10px;
+ display:flex;align-items:center;gap:8px
+}
+#plus{
+ width:40px;height:40px;border-radius:50%;
+ background:#ddd;border:none;font-size:22px
 }
 #input{
-  flex:1;
-  padding:10px;
-  border-radius:20px;
-  border:2px solid gold;
-  outline:none;
+ flex:1;padding:10px;border-radius:20px;border:2px solid gold
 }
-.circle{
-  width:44px;
-  height:44px;
-  border-radius:50%;
-  border:none;
-  font-size:20px;
+#action{
+ width:44px;height:44px;border-radius:50%;
+ background:#6c4cff;color:#fff;border:none;font-size:18px
 }
-#send{background:#6c4cff;color:#fff}
-#mic{background:#19c37d;color:#fff}
-#plus{background:#ddd}
 
+/* ATTACH MENU */
 #attach{
-  position:fixed;
-  bottom:70px;
-  left:10px;
-  display:none;
+ position:fixed;bottom:70px;left:10px;
+ display:none;flex-direction:column;gap:10px
 }
 .attachBtn{
-  width:48px;
-  height:48px;
-  border-radius:50%;
-  margin-bottom:8px;
-  border:none;
-  font-size:20px;
-  color:#fff;
+ width:46px;height:46px;border-radius:50%;
+ border:none;color:#fff;font-size:18px
 }
 .cam{background:#2196f3}
-.img{background:#4caf50}
+.gal{background:#4caf50}
 .file{background:#673ab7}
 </style>
 </head>
-
 <body>
 
 <header>
@@ -119,101 +68,113 @@ header span{
   <b>Raja AI Chat</b>
 </header>
 
-<div id="menu">
-  <h3>Menu</h3>
-  <div onclick="newChat()">➕ New Chat</div>
-  <div onclick="showHistory()">🕘 History</div>
-  <div onclick="settings()">⚙️ Settings</div>
+<div id="layout">
+<div id="sidebar">
+  <h3>Chats</h3>
+  <button onclick="newChat()">+ New Chat</button>
+  <div id="chatList"></div>
 </div>
-<div id="overlay" onclick="toggleMenu()"></div>
 
 <div id="chat"></div>
-
-<div id="attach">
-  <button class="attachBtn cam" onclick="demo('Camera needs HTTPS')">📷</button>
-  <button class="attachBtn img" onclick="demo('Gallery needs permission')">🖼️</button>
-  <button class="attachBtn file" onclick="demo('File picker demo')">📄</button>
 </div>
 
+<div id="overlay" onclick="toggleMenu()"></div>
+
+<!-- ATTACH -->
+<div id="attach">
+  <button class="attachBtn cam" onclick="camera()">📷</button>
+  <button class="attachBtn gal" onclick="gallery()">🖼</button>
+  <button class="attachBtn file" onclick="filePick()">📄</button>
+</div>
+
+<!-- INPUT BAR -->
 <div id="inputBar">
-  <button id="plus" class="circle" onclick="toggleAttach()">＋</button>
-  <input id="input" placeholder="Type message..." oninput="toggleSend()">
-  <button id="send" class="circle" onclick="send()" style="display:none">➤</button>
-  <button id="mic" class="circle" onclick="micDemo()">🎤</button>
+  <button id="plus" onclick="toggleAttach()">＋</button>
+  <input id="input" placeholder="Type message..." oninput="updateBtn()">
+  <button id="action" onclick="action()">🎤</button>
 </div>
 
 <script>
-const chat=document.getElementById("chat");
-const input=document.getElementById("input");
-let history=JSON.parse(localStorage.getItem("history")||"[]");
-
-function add(role,text){
-  const d=document.createElement("div");
-  d.className="bubble "+(role==="user"?"user":"");
-  d.textContent=text;
-  chat.appendChild(d);
-  chat.scrollTop=chat.scrollHeight;
-}
+let chats=JSON.parse(localStorage.getItem("chats")||"[]");
+let currentChat=null;
 
 function toggleMenu(){
-  const m=document.getElementById("menu");
-  const o=document.getElementById("overlay");
-  if(m.style.left==="0px"){
-    m.style.left="-260px";o.style.display="none";
-  }else{
-    m.style.left="0px";o.style.display="block";
-  }
+ const s=document.getElementById("sidebar");
+ const o=document.getElementById("overlay");
+ if(s.style.left==="0px"){s.style.left="-260px";o.style.display="none";}
+ else{s.style.left="0px";o.style.display="block";}
+}
+
+function save(){localStorage.setItem("chats",JSON.stringify(chats));}
+
+function renderList(){
+ const l=document.getElementById("chatList");
+ l.innerHTML="";
+ chats.forEach((c,i)=>{
+  const d=document.createElement("div");
+  d.className="chatItem";
+  d.textContent=c.title;
+  d.onclick=()=>openChat(i);
+  l.appendChild(d);
+ });
 }
 
 function newChat(){
-  chat.innerHTML="";
-  add("bot","New chat started 👋");
-  toggleMenu();
+ const c={title:"New Chat",msgs:[]};
+ chats.unshift(c);currentChat=c;
+ save();renderList();renderChat();toggleMenu();
 }
 
-function showHistory(){
-  chat.innerHTML="";
-  add("bot","🕘 Chat History");
-  if(history.length===0) add("bot","No history yet");
-  history.forEach(m=>add("user",m));
-  toggleMenu();
+function openChat(i){currentChat=chats[i];renderChat();toggleMenu();}
+
+function renderChat(){
+ const c=document.getElementById("chat");c.innerHTML="";
+ currentChat.msgs.forEach(m=>{
+  const d=document.createElement("div");
+  d.className="msg "+(m.role==="user"?"user":"");
+  d.textContent=m.text;
+  c.appendChild(d);
+ });
 }
 
-function settings(){
-  add("bot","⚙️ Settings coming soon");
-  toggleMenu();
+function updateBtn(){
+ const t=document.getElementById("input").value;
+ document.getElementById("action").innerText=t?"➤":"🎤";
 }
 
-function send(){
-  if(!input.value.trim()) return;
-  add("user",input.value);
-  history.push(input.value);
-  localStorage.setItem("history",JSON.stringify(history));
-  add("bot","AI reply placeholder 🤖");
-  input.value="";
-  toggleSend();
+function action(){
+ const t=document.getElementById("input");
+ if(!t.value){
+  addBot("🎤 Mic working (browser demo)");
+  return;
+ }
+ addUser(t.value);
+ t.value="";updateBtn();
 }
 
-function toggleSend(){
-  document.getElementById("send").style.display=input.value?"block":"none";
-  document.getElementById("mic").style.display=input.value?"none":"block";
+function addUser(txt){
+ if(!currentChat) newChat();
+ currentChat.msgs.push({role:"user",text:txt});
+ currentChat.msgs.push({role:"bot",text:"AI reply placeholder 🤖"});
+ currentChat.title=txt.slice(0,20);
+ save();renderList();renderChat();
 }
 
+function addBot(txt){
+ currentChat.msgs.push({role:"bot",text:txt});
+ save();renderChat();
+}
+
+/* ATTACH */
 function toggleAttach(){
-  const a=document.getElementById("attach");
-  a.style.display=a.style.display==="block"?"none":"block";
+ const a=document.getElementById("attach");
+ a.style.display=a.style.display==="flex"?"none":"flex";
 }
+function camera(){addBot("📷 Camera needs HTTPS");toggleAttach();}
+function gallery(){addBot("🖼 Gallery permission demo");toggleAttach();}
+function filePick(){addBot("📄 File picker demo");toggleAttach();}
 
-function demo(msg){
-  add("bot",msg);
-  document.getElementById("attach").style.display="none";
-}
-
-function micDemo(){
-  add("bot","🎤 Mic working (browser demo)");
-}
-
-add("bot","Hello Raja 👋 Main ready hoon.");
+renderList();
 </script>
 
 </body>
