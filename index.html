@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Full Screen Calculator</title>
+<style>
+body {
+  margin:0;
+  background:#eee;
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-end;
+  font-family:Arial, sans-serif;
+}
+
+.display {
+  text-align:right;
+  padding:20px;
+  font-size:42px;
+  color:#000;
+  width:100%;
+  box-sizing:border-box;
+}
+
+.result {
+  text-align:right;
+  padding:0 20px 10px;
+  font-size:24px;
+  color:#666;
+}
+
+.buttons {
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:10px;
+  padding:20px;
+}
+
+button {
+  padding:22px;
+  font-size:22px;
+  border:none;
+  border-radius:50%;
+  background:#fff;
+  box-shadow:0 2px 5px rgba(0,0,0,0.2);
+  color:#000;
+}
+
+button:active {
+  background:#ddd;
+}
+
+.op {
+  background:#f0f0f0;
+}
+
+.equal {
+  background:#ff9f0a;
+  color:white;
+}
+</style>
+</head>
+<body>
+
+<div class="display" id="exp"></div>
+<div class="result" id="res"></div>
+
+<div class="buttons">
+  <button class="op" onclick="clr()">AC</button>
+  <button class="op" onclick="add('%')">%</button>
+  <button class="op" onclick="del()">⌫</button>
+  <button class="op" onclick="add('/')">÷</button>
+
+  <button onclick="add('7')">7</button>
+  <button onclick="add('8')">8</button>
+  <button onclick="add('9')">9</button>
+  <button class="op" onclick="add('*')">×</button>
+
+  <button onclick="add('4')">4</button>
+  <button onclick="add('5')">5</button>
+  <button onclick="add('6')">6</button>
+  <button class="op" onclick="add('-')">−</button>
+
+  <button onclick="add('1')">1</button>
+  <button onclick="add('2')">2</button>
+  <button onclick="add('3')">3</button>
+  <button class="op" onclick="add('+')">+</button>
+
+  <button onclick="add('0')">0</button>
+  <button onclick="add('00')">00</button>
+  <button onclick="add('.')">.</button>
+  <button class="equal" onclick="calc()">=</button>
+</div>
+
+<script>
+let exp = document.getElementById("exp");
+let res = document.getElementById("res");
+
+function speak(txt){
+  speechSynthesis.speak(new SpeechSynthesisUtterance(txt));
+}
+
+function add(v){
+  exp.textContent += v;
+  try{
+    res.textContent = eval(exp.textContent);
+  }catch{}
+}
+
+function clr(){
+  exp.textContent = "";
+  res.textContent = "";
+}
+
+function del(){
+  exp.textContent = exp.textContent.slice(0,-1);
+  try{
+    res.textContent = eval(exp.textContent);
+  }catch{
+    res.textContent = "";
+  }
+}
+
+function calc(){
+  try{
+    let result = eval(exp.textContent);
+    speak(exp.textContent + " equals " + result);
+    exp.textContent = result;
+    res.textContent = "";
+  }catch{
+    speak("Error");
+  }
+}
+</script>
+
+</body>
+</html>
